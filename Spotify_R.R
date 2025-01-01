@@ -735,7 +735,7 @@ ggplot(merged_emotion_long, aes(x = sentiment, y = count, fill = group)) +
   geom_bar(stat = "identity", position = "dodge") +
   scale_fill_manual(values = color_pal, name = "Genres") +
   theme_minimal() +
-  labs(x = "Emotion", y = "Percentage of Words (%)", fill = "Genre")
+  labs(x = "Emotion", y = "Percentage of Words (%)", fill = "Genre", title = "Grouped Bar Chart showing the sentiment of words in song titles by genre")
 
 
 
