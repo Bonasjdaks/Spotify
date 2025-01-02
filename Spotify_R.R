@@ -56,14 +56,27 @@ ggplot(cor_data, aes(x = Var1, y = Var2, fill = value)) +
        y = "Variables",
        fill = "Correlation") +
   theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 20, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 18),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 16)
   )
 
 #loudness/energy are the only two varibles that are strongly correlated across the whole filtered dataset, no matter the track genre
 ggplot(filterd_spotify, aes(x=loudness, y=energy, color = track_genre)) +
   geom_point() +
-  theme(legend.position = "none")
+  labs(x="Loudness", y="Energy", title = "Scatterplot of Loudness vs Energy") +
+  theme(
+    legend.position = "none",
+      plot.title = element_text(size = 16, face = "bold"),
+      axis.title.x = element_text(size = 20),
+      axis.title.y = element_text(size = 16),
+      axis.text.x = element_text(size = 20),
+      axis.text.y = element_text(size = 16),
+)
 
 #what if we filtered down to just two track genres
 
@@ -101,11 +114,28 @@ ggplot(cor_data, aes(x = Var1, y = Var2, fill = value)) +
     axis.text.y = element_text(angle = 0)
   )
 
+col_pal <- c("ambient" = "#00A4CCFF", "drum-and-bass" = "#F95700FF")
+
 
 ggplot(a_spotify, aes(x=loudness, y=energy, colour = track_genre)) +
-  geom_point()
+  geom_point() +
+  scale_colour_manual(values = col_pal, name = "Genres", labels =c("ambient"="Ambient","drum-and-bass"="DnB")) +
+  labs(x="Loudness", y="Energy", title = "Scatterplot of Loudness vs Energy (Ambient and DnB)") +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 20),
+    axis.text.y = element_text(size = 16),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 16)
+    ) +
+  guides(color = guide_legend(reverse = TRUE))
+
+
 ggplot(a_spotify, aes(x=acousticness, y=energy, colour = track_genre))+
   geom_point()
+
 #logistic regression can therefore be done based on energy/loudness as well as acousticsness/energy
 set.seed(123)
 a_class <- a_spotify %>% select(loudness, energy, track_genre)
@@ -489,7 +519,7 @@ johnie <- filterd_spotify[79652,]
 paul <- filterd_spotify[77883,]
 
 
-#Abandoned idea
+#Abandoned idea :(
 
 
 
@@ -499,7 +529,7 @@ paul <- filterd_spotify[77883,]
 
 
 
-#sentiment analysis maybe sad music names has sadder words than party?
+#sentiment analysis maybe sad music names has sadder words than pop?
 
 sad_party <- filterd_spotify %>% filter(track_genre %in% c("sad"))
 sad_party <- sad_party %>% select(Column5 = 5)
@@ -527,7 +557,7 @@ sentiment_analysis <- sad_text_clean_2 %>%
   inner_join(sentiment, by = "word") %>%
   count(sentiment, sort = TRUE)
 
-#visualistaion 
+#visualistaion of sad tracks
 ggplot(sentiment_analysis, aes(x = sentiment, y = n, fill = sentiment)) +
   geom_col() +
   labs(title = "Sentiment Analysis of Sad song track names", x = "Sentiment", y = "Count")
@@ -559,6 +589,37 @@ sad_text_clean_2 %>%
 
 
 
+#same sentiment analysis but for pop songs
+pop <- filterd_spotify %>% filter(track_genre %in% c("pop"))
+pop <- pop %>% select(Column5 = 5)
+pop <- pop %>% rename(track_name = Column5)
+words_remove <- c("feat.", "feat")
+
+#split into words
+pop_text <- pop %>% unnest_tokens(word, track_name)
+
+#clean up the data
+pop_text_clean <- pop_text %>%
+  filter(!word %in% tolower(words_remove))
+
+#remove stopwords
+pop_text_clean_2 <- pop_text_clean %>%
+  anti_join(stop_words, by = "word")
+
+#get sentiment, using bing
+sentiment <- get_sentiments("bing")
+
+#sentimet classification
+sentiment_analysis2 <- pop_text_clean_2 %>%
+  inner_join(sentiment, by = "word") %>%
+  count(sentiment, sort = TRUE)
+
+#visualistaion of sad tracks
+ggplot(sentiment_analysis2, aes(x = sentiment, y = n, fill = sentiment)) +
+  geom_col() +
+  labs(title = "Sentiment Analysis of Pop song track names", x = "Sentiment", y = "Count")
+
+
 
 
 #word cloud on every word in every track name
@@ -580,12 +641,12 @@ all_text_clean_2 <- all_text_clean %>%
 sentiment <- get_sentiments("bing")
 
 #sentimet classification
-sentiment_analysis <- all_text_clean_2 %>%
+sentiment_analysis3 <- all_text_clean_2 %>%
   inner_join(sentiment, by = "word") %>%
   count(sentiment, sort = TRUE)
 
-#visualistaion 
-ggplot(sentiment_analysis, aes(x = sentiment, y = n, fill = sentiment)) +
+#visualistaion of all tracks
+ggplot(sentiment_analysis3, aes(x = sentiment, y = n, fill = sentiment)) +
   geom_col() +
   labs(title = "Sentiment Analysis of all tracks", x = "Sentiment", y = "Count")
 
@@ -612,6 +673,60 @@ all_text_clean_2 %>%
                    random.order = FALSE, 
                    title.bg.colors = "white", title.colors = "blue", 
                    title.size = 1.5)
+
+
+view(sentiment_analysis)
+
+
+#Clustered bar chart of all three bing sentiment analyses
+total_sum <- sum(sentiment_analysis$n)
+total_sum2 <- sum(sentiment_analysis2$n)
+total_sum3 <- sum(sentiment_analysis3$n)
+View(sentiment_analysis)
+
+#New collumn with percentages
+sentiment_analysis$percentage <- (sentiment_analysis$n / total_sum) * 100
+sentiment_analysis <- sentiment_analysis %>% select(-2)
+colnames(sentiment_analysis)[2] <- "Sad_pecentage"
+
+
+sentiment_analysis2$percentage <- (sentiment_analysis2$n / total_sum2) * 100
+sentiment_analysis2 <- sentiment_analysis2 %>% select(-2)
+colnames(sentiment_analysis2)[2] <- "Pop_percentage"
+
+sentiment_analysis3$percentage <- (sentiment_analysis3$n / total_sum3) * 100
+sentiment_analysis3 <- sentiment_analysis3 %>% select(-2)
+colnames(sentiment_analysis3)[2] <- "All_percentage"
+
+merged_sentiment <- merge(sentiment_analysis, sentiment_analysis2, by = "sentiment")
+merged_sentiment <- merge(merged_sentiment, sentiment_analysis3, by = "sentiment")
+colnames(merged_sentiment) <- c("sentiment", ".Sad", ".Pop", ".All")
+
+
+#transforming the data
+
+merged_sentiment_long <- merged_sentiment %>%
+  pivot_longer(cols = starts_with("."),  
+               names_to = "group",           
+               values_to = "count")          
+
+
+color_pal <- c(".All" = "#BAC1B8", ".Pop" = "#58A4B0", ".Sad" = "#0C7C59")
+
+
+ggplot(merged_sentiment_long, aes(x = sentiment, y = count, fill = group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = color_pal, name = "Genres", labels =c(".Pop"="Pop",".All"="All Genres",".Sad"="Sad")) +
+  theme_minimal() +
+  labs(x = "Sentiment", y = "Percentage of Words (%)", fill = "Genre", title = "Grouped Bar Chart showing the sentiment of words in song titles by genre using the Bing Lexicon") +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 16)
+  )
 
 
 
@@ -733,9 +848,18 @@ color_pal <- c(".All" = "#BAC1B8", ".Pop" = "#58A4B0", ".Sad" = "#0C7C59")
 
 ggplot(merged_emotion_long, aes(x = sentiment, y = count, fill = group)) +
   geom_bar(stat = "identity", position = "dodge") +
-  scale_fill_manual(values = color_pal, name = "Genres") +
+  scale_fill_manual(values = color_pal, name = "Genres", labels =c(".Pop"="Pop",".All"="All Genres",".Sad"="Sad")) +
   theme_minimal() +
-  labs(x = "Emotion", y = "Percentage of Words (%)", fill = "Genre", title = "Grouped Bar Chart showing the sentiment of words in song titles by genre")
+  labs(x = "Emotion", y = "Percentage of Words (%)", fill = "Genre", title = "Grouped Bar Chart Sentiment of words in song titles by genre using the NRC lexicon") +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 20, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 16),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 16)
+  )
+  
 
 
 
@@ -892,7 +1016,16 @@ ggbiplot(new_world_PCA,
          groups = group, 
          labels = rownames(data), 
          var.axes = TRUE) +
-  scale_color_discrete(name = group)
+  scale_color_discrete(name = "Genre") +
+  ggtitle("Principle Component Analysis of Genre Variation") +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 16)
+  )
 
 #custom colours
 color_palette <- c("j-idol" = "#BC002D", "chicago-house" = "#002147", "iranian" = "#239F40", "indian" = "#FF671F")
@@ -956,11 +1089,19 @@ ggplot(conferance_m_table, aes(x = Reference, y = Prediction)) +
   geom_tile(aes(fill = Freq), color = "white") + 
   scale_fill_gradient(low = "white", high = "lightblue") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+  theme(axis.text.x = element_text(),
         axis.text.y = element_text(size = 12)) +
-  labs(x = "Actual Genre", y = "Predicted Genre", fill = "Count") +
+  labs(x = "Actual Genres", y = "Predicted Genres", fill = "Count") +
   ggtitle("Confusion Matrix Heatmap of WorldWide Genres") +
-  geom_text(aes(label = Freq), color = "black", size = 4)
+  geom_text(aes(label = Freq), color = "black", size = 6) +
+  theme(plot.title = element_text(size = 16, face = "bold"),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        legend.text = element_text(size = 16)
+  )
 
 
 
@@ -983,6 +1124,10 @@ ggplot(data = world_map) +
                                "Japan" = "#CC8CFC",                
                                "Iran" = "#6FD4D6")) +           
   theme_minimal() +
-  ggtitle("Map Highlighting the Nations in from which the music was compared")
-
-
+  ggtitle("Map Highlighting the Nations from which the music was compared") +
+  theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        legend.position = "bottom",
+        legend.box = "horizontal",
+        legend.title = element_blank(),
+        legend.text = element_text(size = 14)
+  )
